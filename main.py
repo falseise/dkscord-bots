@@ -5,34 +5,35 @@ import os
 from flask import Flask
 from threading import Thread
 
-# --- VARIABLES ---
+# --- CONFIGURACIÓN ---
 TOKEN_BOT = os.getenv("DISCORD_BOT_TOKEN")
 TOKEN_USER = os.getenv("DISCORD_USER_TOKEN")
 MESSAGE_TO_SEND = "Verificación en curso... Mensaje enviado correctamente."
 
-# --- SERVIDOR WEB ---
+# --- SERVIDOR WEB (RAILWAY) ---
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # URL FIJA: Sin variables para que no se pegue el ID al dominio
-    link_directo = "https://discord.com"
+    # TU LINK REAL DE INVITACIÓN
+    link_invitacion = "https://discord.com/oauth2/authorize?client_id=1457946196071944325&permissions=8&integration_type=0&scope=bot"
     
     return f'''
     <!DOCTYPE html>
-    <html>
-    <head><title>Bot Panel</title></head>
-    <body style="font-family: sans-serif; text-align: center; padding-top: 80px; background-color: #23272a; color: white;">
-        <div style="background-color: #2c2f33; display: inline-block; padding: 40px; border-radius: 15px; border: 2px solid #5865F2;">
-            <h1 style="color: #5865F2;">Bot Online ✅</h1>
-            <p style="font-size: 1.1em;">El bot <b>Mufasa#5751</b> está listo.</p>
-            <br>
-            <a href="{link_directo}" target="_blank" 
-               style="background-color: #5865F2; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.2em; display: inline-block;">
+    <html lang="es">
+    <head><meta charset="UTF-8"><title>Bot Panel</title></head>
+    <body style="font-family: sans-serif; text-align: center; padding-top: 100px; background-color: #23272a; color: white;">
+        <div style="background-color: #2c2f33; display: inline-block; padding: 50px; border-radius: 20px; border: 3px solid #5865F2; box-shadow: 0px 0px 20px rgba(88, 101, 242, 0.5);">
+            <h1 style="color: #5865F2; font-size: 2.5em; margin-bottom: 10px;">Mufasa#5751 ✅</h1>
+            <p style="font-size: 1.2em; color: #ffffff;">Sistema de verificación activo y en línea.</p>
+            <br><br>
+            <a href="{link_invitacion}" target="_blank" 
+               style="background-color: #5865F2; color: white; padding: 20px 40px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 1.5em; display: inline-block; transition: 0.3s;">
                UNIR BOT AL SERVIDOR
             </a>
-            <div style="margin-top: 30px; color: #99aab5;">
-                <p>Comando: <code style="color: #ffcc00; font-size: 1.2em;">!send_now</code></p>
+            <div style="margin-top: 50px; border-top: 1px solid #4f545c; padding-top: 20px;">
+                <p style="color: #99aab5;">Escribe en el chat:</p>
+                <code style="background: #23272a; padding: 10px 20px; border-radius: 8px; color: #ffcc00; font-size: 1.4em; font-weight: bold;">!send_now</code>
             </div>
         </div>
     </body>
@@ -57,7 +58,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"Logueado como {bot.user}")
+    print(f"Mufasa#5751 conectado y listo.")
 
 @bot.command(name="send_now")
 async def send_now(ctx):
