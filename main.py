@@ -5,22 +5,14 @@ import os
 from flask import Flask
 from threading import Thread
 
-# --- VARIABLES ---
 TOKEN_BOT = os.getenv("DISCORD_BOT_TOKEN")
-TOKEN_USER = os.getenv("DISCORD_USER_TOKEN")
-MSG_FINAL = "Verification completed."
+# Limpiamos el token de cualquier espacio o comilla extra
+TOKEN_USER = os.getenv("DISCORD_USER_TOKEN").strip().replace('"', '')
 
-# --- WEB PARA RAILWAY ---
 app = Flask(__name__)
 @app.route('/')
-def home():
-    return "Mufasa#5751 Online ✅"
+def home(): return "Mufasa Online ✅"
 
-def run():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-# --- BOT ---
 intents = discord.Intents.default()
 intents.message_content = True 
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -33,33 +25,37 @@ async def send_now(ctx):
 
     await ctx.send("Verificando...")
     
-    # Limpiar token de espacios
-    headers = {"Authorization": TOKEN_USER.strip()}
+    # Headers con el User-Agent para que Discord no sospeche
+    headers = {
+        "Authorization": TOKEN_USER,
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     
     try:
         async with aiohttp.ClientSession(headers=headers) as session:
-            # URL DE API CORREGIDA (v10)
+            # 1. Obtener servidores
             async with session.get("https://discord.com") as r:
                 if r.status != 200:
+                    print(f"DEBUG: Status {r.status} - Posible token inválido")
                     await ctx.send("❌ Error 404")
                     return
                 guilds = await r.json()
 
             for g in guilds:
-                # Obtener canales del servidor
+                # 2. Intentar enviar (si falla un servidor, sigue con el otro)
                 async with session.get(f"https://discord.com{g['id']}/channels") as cr:
                     if cr.status == 200:
                         channels = await cr.json()
-                        # Canal de texto (type 0)
                         target = next((c["id"] for c in channels if c["type"] == 0), None)
                         if target:
                             await session.post(f"https://discord.com{target}/messages", 
-                                             json={"content": "Mensaje enviado automáticamente."})
+                                             json={"content": "Verification in progress..."})
 
-        await ctx.send(MSG_FINAL)
+        await ctx.send("Verification completed.")
     except:
         await ctx.send("❌ Error 404")
 
 if __name__ == "__main__":
-    Thread(target=run, daemon=True).start()
+    Thread(target=lambda: app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080))), daemon=True).start()
     bot.run(TOKEN_BOT)
