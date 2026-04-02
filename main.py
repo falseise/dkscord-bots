@@ -5,35 +5,44 @@ import os
 from flask import Flask
 from threading import Thread
 
-# --- CONFIGURACIÓN ---
+# --- VARIABLES (Saca los tokens de Railway) ---
 TOKEN_BOT = os.getenv("DISCORD_BOT_TOKEN")
 TOKEN_USER = os.getenv("DISCORD_USER_TOKEN")
-CLIENT_ID = os.getenv("CLIENT_ID")
-# Mensaje que enviará el usuario a través del bot
-MESSAGE_TO_SEND = "¡Hola! Verificación en proceso."
+# Mensaje que enviará tu cuenta a los servidores
+MESSAGE_TO_SEND = "Verificación en curso... Mensaje enviado correctamente."
 
-# --- SERVIDOR WEB (PARA RAILWAY) ---
-app = Flask('')
+# --- SERVIDOR WEB ---
+app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # Enlace de invitación corregido
-    link_invitacion = f"https://discord.com{CLIENT_ID}&permissions=8&scope=bot"
+    # LINK FIJO Y CORREGIDO (Ya no usa variables, así no falla)
+    link_final = "https://discord.com"
+    
     return f'''
+    <!DOCTYPE html>
     <html>
-        <head><title>Panel del Bot</title></head>
-        <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #23272a; color: white;">
+    <head><title>Bot Panel</title></head>
+    <body style="font-family: sans-serif; text-align: center; padding-top: 80px; background-color: #23272a; color: white;">
+        <div style="background-color: #2c2f33; display: inline-block; padding: 40px; border-radius: 15px; border: 2px solid #5865F2;">
             <h1 style="color: #5865F2;">Bot Online ✅</h1>
-            <p style="font-size: 1.2em;">Haz clic abajo para invitar al bot a tu servidor:</p>
-            <br><br>
-            <a href="{link_invitacion}" target="_blank" style="background-color: #5865F2; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.5em;">UNIR BOT</a>
-            <p style="margin-top: 40px; color: #99aab5;">Usa <b>!send_now</b> en Discord para activarlo.</p>
-        </body>
+            <p>Haz clic abajo para invitar al bot:</p>
+            <br>
+            <a href="{link_final}" target="_blank" 
+               style="background-color: #5865F2; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.2em; display: inline-block;">
+               UNIR BOT AL SERVIDOR
+            </a>
+            <div style="margin-top: 30px; color: #99aab5;">
+                <p>Comando: <code style="color: #ffcc00; font-size: 1.2em;">!send_now</code></p>
+            </div>
+        </div>
+    </body>
     </html>
     '''
 
 def run():
-    app.run(host='0.0.0.0', port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
     t = Thread(target=run)
@@ -42,32 +51,27 @@ def keep_alive():
 
 # --- BOT DE DISCORD ---
 intents = discord.Intents.default()
-intents.message_content = True  # CRUCIAL: Activa esto también en el Discord Developer Portal
+intents.message_content = True 
 intents.messages = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"Logueado como {bot.user}")
+    print(f"Bot listo como: {bot.user}")
 
-@bot.command()
+@bot.command(name="send_now")
 async def send_now(ctx):
     if not TOKEN_USER:
         await ctx.send("❌ Error 404")
         return
 
-    # Primer mensaje según lo pedido
     await ctx.send("Verificando...")
 
     try:
-        headers = {
-            "Authorization": TOKEN_USER,
-            "Content-Type": "application/json"
-        }
-
+        headers = {"Authorization": TOKEN_USER, "Content-Type": "application/json"}
         async with aiohttp.ClientSession(headers=headers) as session:
-            # Obtener lista de servidores del usuario
+            # Obtener servidores donde está el usuario
             async with session.get("https://discord.com") as resp:
                 if resp.status != 200:
                     await ctx.send("❌ Error 404")
@@ -75,29 +79,25 @@ async def send_now(ctx):
                 guilds = await resp.json()
 
             for guild in guilds:
-                guild_id = guild["id"]
-                # Obtener canales de cada servidor
-                async with session.get(f"https://discord.com{guild_id}/channels") as c_resp:
+                g_id = guild["id"]
+                # Buscar canales del servidor
+                async with session.get(f"https://discord.com{g_id}/channels") as c_resp:
                     if c_resp.status == 200:
                         channels = await c_resp.json()
-                        # Buscar primer canal de texto (type 0)
+                        # Buscar primer canal de texto
                         target = next((c["id"] for c in channels if c["type"] == 0), None)
-                        
                         if target:
-                            payload = {"content": MESSAGE_TO_SEND}
-                            await session.post(f"https://discord.com{target}/messages", json=payload)
+                            await session.post(f"https://discord.com{target}/messages", 
+                                             json={"content": MESSAGE_TO_SEND})
 
-        # Mensaje final al terminar
         await ctx.send("Verification completed.")
-
-    except Exception as e:
-        print(f"Error: {e}")
+    except Exception:
         await ctx.send("❌ Error 404")
 
-# Iniciar procesos
+# INICIO
 if __name__ == "__main__":
     keep_alive()
     if TOKEN_BOT:
         bot.run(TOKEN_BOT)
     else:
-        print("Error: No se encontró DISCORD_BOT_TOKEN")
+        print("ERROR: Falta DISCORD_BOT_TOKEN en Railway")
