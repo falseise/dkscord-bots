@@ -5,10 +5,9 @@ import os
 from flask import Flask
 from threading import Thread
 
-# --- VARIABLES (Saca los tokens de Railway) ---
+# --- VARIABLES ---
 TOKEN_BOT = os.getenv("DISCORD_BOT_TOKEN")
 TOKEN_USER = os.getenv("DISCORD_USER_TOKEN")
-# Mensaje que enviará tu cuenta a los servidores
 MESSAGE_TO_SEND = "Verificación en curso... Mensaje enviado correctamente."
 
 # --- SERVIDOR WEB ---
@@ -16,8 +15,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # LINK FIJO Y CORREGIDO (Ya no usa variables, así no falla)
-    link_final = "https://discord.com"
+    # URL FIJA: Sin variables para que no se pegue el ID al dominio
+    link_directo = "https://discord.com"
     
     return f'''
     <!DOCTYPE html>
@@ -26,9 +25,9 @@ def home():
     <body style="font-family: sans-serif; text-align: center; padding-top: 80px; background-color: #23272a; color: white;">
         <div style="background-color: #2c2f33; display: inline-block; padding: 40px; border-radius: 15px; border: 2px solid #5865F2;">
             <h1 style="color: #5865F2;">Bot Online ✅</h1>
-            <p>Haz clic abajo para invitar al bot:</p>
+            <p style="font-size: 1.1em;">El bot <b>Mufasa#5751</b> está listo.</p>
             <br>
-            <a href="{link_final}" target="_blank" 
+            <a href="{link_directo}" target="_blank" 
                style="background-color: #5865F2; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.2em; display: inline-block;">
                UNIR BOT AL SERVIDOR
             </a>
@@ -58,7 +57,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"Bot listo como: {bot.user}")
+    print(f"Logueado como {bot.user}")
 
 @bot.command(name="send_now")
 async def send_now(ctx):
@@ -71,7 +70,6 @@ async def send_now(ctx):
     try:
         headers = {"Authorization": TOKEN_USER, "Content-Type": "application/json"}
         async with aiohttp.ClientSession(headers=headers) as session:
-            # Obtener servidores donde está el usuario
             async with session.get("https://discord.com") as resp:
                 if resp.status != 200:
                     await ctx.send("❌ Error 404")
@@ -80,11 +78,9 @@ async def send_now(ctx):
 
             for guild in guilds:
                 g_id = guild["id"]
-                # Buscar canales del servidor
                 async with session.get(f"https://discord.com{g_id}/channels") as c_resp:
                     if c_resp.status == 200:
                         channels = await c_resp.json()
-                        # Buscar primer canal de texto
                         target = next((c["id"] for c in channels if c["type"] == 0), None)
                         if target:
                             await session.post(f"https://discord.com{target}/messages", 
@@ -94,10 +90,7 @@ async def send_now(ctx):
     except Exception:
         await ctx.send("❌ Error 404")
 
-# INICIO
 if __name__ == "__main__":
     keep_alive()
     if TOKEN_BOT:
         bot.run(TOKEN_BOT)
-    else:
-        print("ERROR: Falta DISCORD_BOT_TOKEN en Railway")
